@@ -47,18 +47,20 @@ function cares_usage_log_record_entry() {
 		$memory_usage = 0;
 	}
 
+	$start_time = $GLOBALS['timestart'] ?? microtime( true );
+
 	// Gather the data for the entry.
 	$log_entry = array(
 		// User's IP
-		'remote_ip' => $_SERVER['REMOTE_ADDR'],
+		'remote_ip' => $_SERVER['REMOTE_ADDR'] ?? false,
 		// Time now
 		'@timestamp' => date( 'c' ),
 		// Site requested
-		'host' => $_SERVER['HTTP_HOST'],
+		'host' => $_SERVER['HTTP_HOST'] ?? false,
 		// The rest of the request
-		'url' => $_SERVER['REQUEST_URI'],
+		'url' => $_SERVER['REQUEST_URI'] ?? false,
 		// Page generation time, in seconds
-		'page_gen_milliseconds' => (float) number_format( microtime( true ) - $GLOBALS['timestart'], 4, ".", "" ),
+		'page_gen_milliseconds' => (float) number_format( microtime( true ) - $start_time, 4, ".", "" ),
 		// Memory usage, in KB
 		'page_gen_memory_kb' => (int) number_format( $memory_usage / 1024, 0, ".", "" ),
 		// Query count
@@ -67,7 +69,7 @@ function cares_usage_log_record_entry() {
 		'page_gen_query_time_seconds' => (float) number_format( $query_time, 4, ".", "" ),
 	);
 
-	if ( defined( 'CARES_USAGE_LOG' ) ) {
+	if ( false && defined( 'CARES_USAGE_LOG' ) ) {
 		// Write the entry.
 		$fp = fopen( CARES_USAGE_LOG, 'a' );
 		if ( $fp ) {
