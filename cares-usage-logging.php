@@ -27,9 +27,9 @@
  */
 add_action( 'shutdown', 'cares_usage_log_record_entry' );
 function cares_usage_log_record_entry() {
-	if ( ! defined( 'CARES_USAGE_LOG' ) || ! is_writable( CARES_USAGE_LOG ) ) {
-		return;
-	}
+	// if ( ! defined( 'CARES_USAGE_LOG' ) || ! is_writable( CARES_USAGE_LOG ) ) {
+	// 	return;
+	// }
 
 	// Prepare query count and query time.
 	$queries = (array) $GLOBALS['wpdb']->queries;
@@ -50,27 +50,51 @@ function cares_usage_log_record_entry() {
 	// Gather the data for the entry.
 	$log_entry = array(
 		// User's IP
-		$_SERVER['REMOTE_ADDR'],
+		'remote_ip' => $_SERVER['REMOTE_ADDR'],
 		// Time now
-		date( 'c' ),
+		'@timestamp' => date( 'c' ),
 		// Site requested
-		$_SERVER['HTTP_HOST'],
+		'host' => $_SERVER['HTTP_HOST'],
 		// The rest of the request
-		$_SERVER['REQUEST_URI'],
+		'url' => $_SERVER['REQUEST_URI'],
 		// Page generation time, in seconds
-		number_format( microtime( true ) - $GLOBALS['timestart'], 4 ),
+		'page_gen_milliseconds' => (float) number_format( microtime( true ) - $GLOBALS['timestart'], 4, ".", "" ),
 		// Memory usage, in KB
-		number_format( $memory_usage / 1024 ),
+		'page_gen_memory_kb' => (int) number_format( $memory_usage / 1024, 0, ".", "" ),
 		// Query count
-		count( $queries ),
+		'page_gen_queries' => count( $queries ),
 		// Query time, in seconds
-		number_format( $query_time, 4 ),
+		'page_gen_query_time_seconds' => (float) number_format( $query_time, 4, ".", "" ),
 	);
 
-	// Write the entry.
-	$fp = fopen( CARES_USAGE_LOG, 'a' );
-	if ( $fp ) {
-		fputcsv( $fp, $log_entry );
-		fclose( $fp );
+	if ( defined( 'CARES_USAGE_LOG' ) ) {
+		// Write the entry.
+		$fp = fopen( CARES_USAGE_LOG, 'a' );
+		if ( $fp ) {
+			fputcsv( $fp, $log_entry );
+			fclose( $fp );
+		}
+	} else {
+		// Send the entry to ElasticSearch
+		if ( function_exists( 'wp_json_encode' ) ) {
+			$encoded_data = wp_json_encode( $log_entry );
+		} else {
+			$encoded_data = json_encode( $log_entry );
+		}
+
+		$request_args = array(
+			'headers' => array('Content-Type' => 'application/json; charset=utf-8'),
+			'body'    => $encoded_data,
+			'method'  => 'POST',
+			'timeout' => 15,
+		);
+
+		$request = wp_remote_request( 'http://localhost:9200/cares_shared_requests/_doc', $request_args );
+
+		$request_response_code = (int) wp_remote_retrieve_response_code( $request );
+		$is_valid_res = ( $request_response_code >= 200 && $request_response_code <= 299 );
+		if ( false === $request || is_wp_error( $request ) || ! $is_valid_res ) {
+			error_log( 'ElasticSearch POST failed: ' . $encoded_data );
+		}
 	}
 }
