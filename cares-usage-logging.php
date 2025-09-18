@@ -9,7 +9,7 @@
  *
  * Plugin Name: CARES Usage Logging
  * Description: Basic logging of database queries, page generation time and memory usage to a shared log.
- * Version:     1.0.0
+ * Version:     1.1.0
  * Plugin URI:  https://github.com/careshub/cares-usage-log-writer
  * Author:      David Cavins
  * Text Domain: cares-usage-log-writer
@@ -27,9 +27,16 @@
  */
 add_action( 'shutdown', 'cares_usage_log_record_entry' );
 function cares_usage_log_record_entry() {
-	// if ( ! defined( 'CARES_USAGE_LOG' ) || ! is_writable( CARES_USAGE_LOG ) ) {
-	// 	return;
-	// }
+	$output_type = 'csv';
+	if ( defined( 'CARES_USAGE_LOG_USE_ELASTICSEARCH' ) && CARES_USAGE_LOG_USE_ELASTICSEARCH ) {
+		$output_type = 'elastic';
+	}
+
+	// If writing to a CSV, but we can't, bail.
+	if ( 'csv' === $output_type && ( ! defined( 'CARES_USAGE_LOG' ) || ! is_writable( CARES_USAGE_LOG ) ) ) {
+		return;
+	}
+
 
 	// Prepare query count and query time.
 	$queries = (array) $GLOBALS['wpdb']->queries;
@@ -69,11 +76,11 @@ function cares_usage_log_record_entry() {
 		'page_gen_query_time_seconds' => (float) number_format( $query_time, 4, ".", "" ),
 	);
 
-	if ( false && defined( 'CARES_USAGE_LOG' ) ) {
+	if ( 'csv' === $output_type ) {
 		// Write the entry.
 		$fp = fopen( CARES_USAGE_LOG, 'a' );
 		if ( $fp ) {
-			fputcsv( $fp, $log_entry );
+			fputcsv( $fp, array_values( $log_entry ) );
 			fclose( $fp );
 		}
 	} else {
