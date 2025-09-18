@@ -37,6 +37,10 @@ function cares_usage_log_record_entry() {
 		return;
 	}
 
+	// If we don't want to track anonymous traffic, and this visit is anonymous, bail.
+	if ( defined( 'CARES_USAGE_LOG_IGNORE_ANON' ) && CARES_USAGE_LOG_IGNORE_ANON && ! is_user_logged_in() ) {
+		return;
+	}
 
 	// Prepare query count and query time.
 	$queries = (array) $GLOBALS['wpdb']->queries;
