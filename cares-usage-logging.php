@@ -70,6 +70,8 @@ function cares_usage_log_record_entry() {
 		'host' => $_SERVER['HTTP_HOST'] ?? false,
 		// The rest of the request
 		'url' => $_SERVER['REQUEST_URI'] ?? false,
+		// URL parameters
+		'post_action' => $_POST['action'] ?? false,
 		// Page generation time, in seconds
 		'page_gen_milliseconds' => (float) number_format( microtime( true ) - $start_time, 4, ".", "" ),
 		// Memory usage, in KB

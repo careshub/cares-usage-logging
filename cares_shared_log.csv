@@ -1,1 +1,1 @@
-remote_ip,@timestamp,host,url,page_gen_milliseconds,page_gen_memory_kb,page_gen_queries,page_gen_query_time_seconds 
+remote_ip,@timestamp,host,url,post_action,page_gen_milliseconds,page_gen_memory_kb,page_gen_queries,page_gen_query_time_seconds
